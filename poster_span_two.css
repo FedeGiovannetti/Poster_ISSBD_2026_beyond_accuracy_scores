@@ -1,0 +1,68 @@
+/* poster_span_two.css
+   Hace que un bloque envuelto en `::: {.span-two}` ocupe 2 columnas
+   en plantillas basadas en CSS grid (ej.: posterdown → chrome_print).
+   Guárdalo en la misma carpeta que tu .Rmd y referencialo desde el YAML.
+
+   Esta versión incluye un "fallback" por si la plantilla no usa grid
+   exactamente como esperamos: definí `--poster-columns` según la
+   cantidad de columnas que use tu poster (3 es el valor por defecto
+   más usual). Si tu plantilla usa 4 columnas, pon `--poster-columns: 4;`
+*/
+
+:root {
+  /* Ajustá este valor si tu poster tiene un número distinto de columnas */
+  --poster-columns: 3;
+}
+
+/* Clase principal: intenta usar grid-column (lo ideal) */
+.span-two {
+  grid-column: span 2 !important;
+  box-sizing: border-box;
+  /* fallback: si el layout no está en grid, calculamos un ancho aproximado */
+  width: calc( (100% / var(--poster-columns)) * 2 ) !important;
+  display: block !important;
+}
+
+/* Atajos/fallbacks por si la plantilla usa nombres alternativos */
+.span-two-wide, .span-two-column, .column-span-2, .column-span-two {
+  grid-column: span 2 !important;
+  width: calc( (100% / var(--poster-columns)) * 2 ) !important;
+  display: block !important;
+}
+
+/* Aseguramos que la figura o la imagen dentro llene el contenedor */
+.span-two .figure,
+.span-two img,
+.span-two .knitr-figure,
+.span-two .r-plot {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Caption centrada y tamaño ligeramente menor */
+.span-two .caption,
+.span-two figcaption {
+  text-align: center;
+  margin-top: 0.3em;
+  font-size: 0.95em;
+}
+
+/* Asegura que la regla se aplique al imprimir (chrome_print) */
+@media print {
+  .span-two, .span-two-wide, .column-span-2 {
+    grid-column: span 2 !important;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* Pequeños ajustes opcionales: si la plantilla añade padding al grid-cell */
+.span-two > * {
+  box-sizing: border-box;
+}
+
+/* Utilidad para debug: añadir la clase .debug para ver el contenedor */
+.span-two.debug { outline: 4px solid rgba(255,0,0,0.6) !important; }

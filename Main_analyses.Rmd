@@ -1,0 +1,972 @@
+---
+title: "Beyond accuracy scores: Distinct working memory profiles across socioeconomic and math performance levels"
+subtitle: "Main analyses"
+author: "Federico Giovannetti, Marcos Luis Pietto, María Soledad Segretin"
+date: "`r Sys.Date()`"
+output:
+   html_document
+fontsize: 9pt
+---
+
+```{r setup and imports, include=FALSE}
+
+# rm(list = ls())
+
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = F)
+
+knitr::opts_chunk$set(message = F)
+
+library(tidyverse)
+library(gt)
+library(scales)
+library(patchwork)
+library(ggpubr)
+library(flextable)
+library(corrplot)
+library(here) 
+library(mediation)
+library(broom)
+source(here("functions/helper_functions.R"))
+source(here("functions/helper_tables.R"))
+source(here("data_import.R"))
+
+
+escala_clusters <- scale_color_hue(
+  name      = "Clusters",
+  direction = -1
+)
+x
+```
+
+
+# 1. Background
+
+Evidence links socioeconomic status (SES) to cognitive development and academic performance (Noble & Giebler, 2020). Working memory (WM) is proposed as a mediator (Waters et al., 2020). Research often relies on global performance, which may limit the capture of cognitive diversity in developmental pathways. Exploring specific task parameters and error types could reveal distinct subgroups for targeted interventions.
+
+# 2. Purpose
+
+Implement unsupervised clustering to examine associations between SES and academic performance. Children with distinct profiles will exhibit differing WM response patterns.
+
+# 3. Methods
+
+Fifty-one 5-year-olds completed a Corsi task and the Woodcock-Muñoz math subscale; caregivers provided SES information. Associations were examined via multiple regression and bootstrapped mediation analyses. Children were clustered (PAM), and response patterns were compared between groups using Kruskal-Wallis and corrected post-hoc tests. Analyses were conducted in R (2025).
+
+# 4. Results
+
+## 4.1. Accuracy scores for working memory and academic performance
+
+### 4.1.1. Correlation matrix
+
+A correlation matrix was implemented in order to analize the existence of similar variables (e.g. higher than *r* > .80) and uninformative variables (e.g. *r* < .2). Sex was removed from next anlysis due to low correlation value.
+
+```{r correlation_matrix, dev='png', out.width="70%"}
+
+
+df_agg_corsi_all %>%
+  dplyr::select(Accuracy, EDAD, SEXO, PJENES, math_WM) %>%
+  na.omit() %>%
+  cor() %>%
+  corrplot(
+         method = "color",
+         type = "upper",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.cex = 1,
+         tl.srt = 30,
+         number.cex = 1,
+         diag = FALSE)
+
+```
+
+
+### 4.1.2. Multiple linear regression models
+
+Two different linear regression models were implemented in order to evaluate predictors for Working memory and math performance values. **Model A** included Working memory accuracy as outcome variable, with Age and SES as predictor variables. **Model B** included Math performance and WM accuracy as well as **Age** as predictors.
+
+```{r regression_models, fig.height=10}
+
+Model_A <- summary_lm_table("Accuracy",
+                  c("Accuracy ~ EDAD + PJENES"),
+                 df_agg_corsi_all,
+                 diagnostic_plots = F) 
+
+Model_A%>% 
+  apa("Regression model for Age and SES as predictors of total score") 
+
+
+Model_B <- summary_lm_table("Math",
+                  c("math_WM ~ EDAD +Accuracy"),
+                 df_agg_corsi_all,
+                 diagnostic_plots = F) 
+
+Model_B %>% 
+  apa("Regression model for total working memory score as a predictor of math score") 
+
+
+```
+
+
+SES, WM, and math performance were associated (*β* > `r min(Model_A$estimate[3], Model_B$estimate[3])`; *p* < .001), after controlling for the effect of age. Which was only statistically significant for Model A (*β* = `r Model_A$estimate[2]`; *p* = `r Model_A$p.value[2]`)
+
+
+```{r ses_model_fit_plot}
+
+age_ses_model <- lm(Accuracy ~ EDAD + PJENES, data = df_agg_corsi_all)
+
+# Genero un nuevo df para predecir puntos con edad como constante
+
+PJENES_seq <- seq(min(df_agg_corsi_all$PJENES), max(df_agg_corsi_all$PJENES), length.out = 100)
+prediction_df <- data.frame(
+  PJENES = PJENES_seq,
+  EDAD = mean(df_agg_corsi_all$EDAD)
+
+)
+
+# Hago predicción con ese nuevo df
+prediction_result <- predict(age_ses_model, newdata = prediction_df, se.fit = TRUE)
+
+prediction_df$fitted_fixed_edad <- prediction_result$fit
+prediction_df$se_fit            <- prediction_result$se.fit
+
+t_critico <- qt(0.975, df = df.residual(age_ses_model)) # t-crítico para 95% de confianza
+
+prediction_df <- prediction_df %>%
+  mutate(
+    # Límite Inferior (Lower Bound)
+    lwr = fitted_fixed_edad - t_critico * se_fit,
+    # Límite Superior (Upper Bound)
+    upr = fitted_fixed_edad + t_critico * se_fit
+  )
+
+
+p1 <- df_agg_corsi_all %>% 
+  mutate(mean_age = mean(EDAD)) %>% 
+  # mutate(fitted = predict(age_ses_model, newdata = df_agg_corsi_all)) %>% 
+    ggplot(aes(x = PJENES, y = Accuracy))+
+  
+  geom_ribbon(data = prediction_df, 
+              aes(y = fitted_fixed_edad, ymin = lwr, ymax = upr), 
+              fill = "darkgreen", alpha = 0.2) +
+  geom_point()+  
+  geom_line(data = prediction_df, aes(y = fitted_fixed_edad), color = "darkgreen", linewidth = 1.2) +
+  xlab("SES")+
+  ylab("Score")+
+  theme_minimal()
+
+
+```
+
+```{r academic_scores_plots}
+
+p2 <- df_agg_corsi_all %>%
+  ggplot(aes(x = Accuracy, y = math_WM))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  theme_minimal()
+
+
+```
+
+
+```{r all_regression_plots, fig.height=3.5, fig.width=10, dev='png'}
+
+(p1 | p2)
+
+
+```
+
+### 4.1.3. Mediacion analyses
+
+After confirming the association between cognitive, academic and social variables, a metiation model with non-parametric bootstrap was implemented to investigate the potential mediation role of working memory in the assocation between SES and math performance.
+
+```{r mediation_plot, dev='png'}
+
+library(psych)
+
+analisis_mediacion <- psych::mediate(y = "math_WM", 
+                              x = "PJENES", 
+                              m = "Accuracy", 
+                              data = df_agg_corsi_all,
+                              n.iter = 1000, 
+                              std = F)    
+
+
+```
+```{r mediation_table}
+
+
+
+# Mediation model
+model.m <- lm(Accuracy ~ PJENES, data = df_agg_corsi_all)
+
+# Outcome model
+model.y <- lm(math_WM ~ PJENES + Accuracy, data = df_agg_corsi_all)
+
+# Mediation analysis
+set.seed(123) 
+results <- mediation::mediate(model.m, model.y, 
+                   treat = "PJENES",  
+                   mediator = "Accuracy", 
+                   boot = TRUE, 
+                   sims = 1000)        
+
+
+
+
+medaition_table <- obtener_tabla_mediacion(results)
+
+medaition_table %>%
+  apa("")
+
+```
+
+
+Accuracy in WM mediated SES’s effect on math performance (*β* = `r Model_A$p.value[2]`; *p* < .001), while the direct effect disappeared. 
+
+# 4.2.  Task parameter analysis in CORSI
+
+# 4.2.1. Description of variables and correlation matrix
+
+After confirming the mediation role of WM in the association between SES and math performance, we are interested in studying which specific aspects of performance in CORSI might be relevant in this association. In the literature, two specific task parameters appear as highly relevant: the maximum level, and the longitude of the sequence.
+
+**Maximum level:** literature establishes that difficulty in CORSI grows with the amount of blocks you need to remember. Here, we generated a numberic variable that identifies the maximum amount of blocks in which a participant did, at least, one correct trial.
+
+**Path length:** literature suggest that path lenght may be related with performance in distinct ways as both shorter and longer paths may by much more difficult than intermediate ones. Here, we generated three variables that contain the specific accuracy of participants in short, mid, and long trials. Esto se hace solo para los ensayos de 2 y 3 bloques ya que fueron completados por todos los sujetos. This is only done for trials with 2 or 3 blocks, since these were the only ones completed by all subjects.
+
+```{r trial_types, dev = 'png'}
+
+
+# df_agg_corsi_all = df_agg_corsi %>% 
+#   left_join(subject_info) %>% 
+#   filter(!is.na(PJENES))
+
+Long_scores = df_trials_test %>% 
+  filter(blocks <= 3) %>%
+  group_by(Subject, Longitud.Trayectoria) %>% 
+  summarise(Score_long = sum(trial_result),
+            n = n(),
+            Errors = n - Score_long
+            ) %>% 
+  # mutate(Errors = ifelse(is.na(Errors), n, Errors)) %>% 
+  mutate(Score_long = Score_long/n) %>% 
+  pivot_wider(id_cols = Subject, names_from = Longitud.Trayectoria, values_from = Score_long, names_prefix = "Score_") 
+  
+
+df_agg_corsi_all_unscaled = df_agg_corsi_all_unscaled %>% 
+  left_join(Long_scores) %>% 
+  mutate(across(starts_with("Score_"), ~coalesce(.x, 0)))
+
+
+
+```
+
+
+
+The different parameters of the task show distinct associations with the global score in the sense that none of them alone seems to explain all changes in global score. Correlation matrix and regression models show that **medium longitude trials** are the ones with the lesser association with global score. 
+
+
+```{r trial_score_matrix, fig.height=6, fig.width=10, dev='png', out.width="80%"}
+
+
+df_agg_corsi_all_unscaled %>%
+  dplyr::select(Accuracy, max_level, Score_Short, Score_Mid, Score_Long) %>%
+  na.omit() %>%
+  cor() %>%
+  corrplot(
+         method = "color",
+         type = "upper",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.cex = 2.5,
+         tl.srt = 30,
+         number.cex = 2.5,
+         diag = FALSE)
+
+
+```
+
+
+```{r regression_trial_types}
+  
+# Como se asocia la longitud con el score total?
+
+
+  summary_lm_table("Accuracy",
+                    c("Accuracy ~ max_level +Score_Short + Score_Mid + Score_Long"),
+                   df_agg_corsi_all_unscaled %>% 
+                     mutate(across(where(is.numeric), scale))) %>% 
+    mutate(across(where(is.numeric), ~round(.x, digits = 4))) %>% 
+  apa("")
+
+
+
+
+```
+
+
+
+# 4.3.  Error analysis in CORSI
+
+# 4.3.1. Error classification and distribution
+
+Aside from global scores and problem parameters, we were interested in studying the different types of errors committed by participants. These errors were grouped by comparing the required sequence with the given answer in each two- and three blocks trial. The types of errors found were:
+
+
+a) **Order errors:** in which the response contains the required blocks but in a different order
+b) **Block errors:** in which the response has the required amount of blocks but with at least one different block.
+c) **Other errors:** e.g. the response has different number of blocks and different blocks.
+
+
+```{r, error_classification, dev='png', out.width="70%"}
+
+
+
+# Trial classification 
+
+tbt_subset = df_trials_test %>% 
+  filter(blocks <= 3) %>% 
+  rowwise() %>% 
+  mutate(error_types = case_when(
+    
+    trial_result == 1 ~ "Correct",
+    trial_result == 0 & sort_sequence(sequence) == sort_sequence(response_sequence) ~ "Order error",
+    trial_result == 0 &
+    nchar(sequence) == nchar(response_sequence) &
+    sort_sequence(sequence) != sort_sequence(response_sequence) ~ "Block error",
+    
+    TRUE ~ "Other errors"
+
+    )
+  ) %>% 
+  mutate(error_types = as.factor(error_types)) %>% 
+
+  ungroup()
+
+
+
+
+
+(errors_dist_table = tbt_subset %>% 
+  group_by(error_types) %>% 
+  summarise(n = n()) %>% 
+  gt())
+
+
+# datos agrupados por tipo de error
+
+subset_user_error = tbt_subset %>% 
+  group_by(Subject) %>% 
+  summarise(Correctos = sum(error_types == "Correct"),
+            Error_de_orden = sum(error_types == "Order error"),
+            Error_de_bloques = sum(error_types == "Block error"),
+            # Missing_blocks = sum(error_types == "Missing blocks"),
+            # Extra_blocks = sum(error_types == "Extra blocks"),
+            # No_response = sum(error_types == "Sin respuesta"),
+            Otros_errores = sum(error_types == "Other errors")
+  )
+
+
+
+
+# error_dist_plot = subset_user_error %>% 
+#   pivot_longer(-Subject, names_to = "error_type", values_to = "cantidad") %>% 
+#   ggplot(aes(x = cantidad, fill = error_type))+
+#   geom_bar(position = position_dodge2(width = 0.9, preserve = "single"))
+# # 
+# layout <- c(
+#   area(t = 1, l = 1, b = 1, r = 1),
+#   area(t = 1, l = 1, b = 1, r = 1)
+# )
+# 
+# 
+# error_dist_plot +inset_element(errors_dist_table, 0.7, 1, 1, 1)
+
+
+```
+
+
+When analyzing how errors are distributed along trial types, differences arise in three-blocks trials. Order errors seem to be more frequent in short lenght trials; while Block errors might be more frequent in longer trials.
+
+```{r error_distribution, fig.height=6, fig.width=10, dev='png', out.width="80%"}
+  
+subset_user_error = tbt_subset %>%
+  dplyr::select(error_types, Longitud.Trayectoria, blocks) %>% 
+  summarise(Frecuencias = n(),.by = c(error_types, Longitud.Trayectoria, blocks)) %>% 
+  mutate(total = sum(Frecuencias),.by = c("Longitud.Trayectoria", "blocks")) %>% 
+  mutate(Porcentaje = round((Frecuencias / total), digits = 2))
+
+
+
+subset_user_error %>% 
+  ggplot(aes(x = factor(Longitud.Trayectoria), y = Porcentaje, fill = error_types))+
+  geom_bar(stat = "identity", position = "stack")+
+
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(y="\nPercentaje of errors", x="Longitud\n", fill = "Error type")+
+  theme(panel.spacing=unit(-1, "lines"))+
+  theme_minimal(base_size = 20)+
+  facet_wrap(~blocks, labeller = label_both)
+
+
+```
+
+```{r error_join}
+
+
+error_by_subject_long = tbt_subset %>%
+  group_by(Subject) %>% 
+  mutate(median_rt = median(total_rt, na.rm = T),
+         mean_acc = mean(trial_result, na.rm = T),
+         n = n()) %>% 
+  group_by(Subject, error_types) %>%
+  summarise(cantidad = n(),
+            jugados = max(n),
+            median_rt = max(median_rt, na.rm = T) ,
+            mean_acc = max(mean_acc, na.rm = T)
+  ) %>% 
+  mutate(proporcion = (cantidad/jugados)) %>%
+  ungroup()
+
+
+
+error_by_subject_wide = error_by_subject_long %>%
+  dplyr::select(Subject, error_types, proporcion, median_rt, mean_acc) %>%
+  pivot_wider(values_from = c(proporcion), names_from = error_types) %>%
+mutate(across(where(is.numeric), ~coalesce(.x, 0)))
+
+
+colnames(error_by_subject_wide) <- c("Subject",
+                                     "median_rt",
+                                     "mean_acc",
+                                     "correctos",
+                                     "order_errors",
+                                     "block_errors",
+                                     "other_errors")
+
+
+df_agg_corsi_all_unscaled = df_agg_corsi_all_unscaled %>% 
+  left_join(error_by_subject_wide)
+
+
+```
+
+
+# 4.3.1. Association between type of errors and global accuracy
+
+The different error types show distinct associations with the global score in the sense that none of the error types alone can explain all changes in global score. Correlation shows that show that **block errors** are the ones with the lowest correlation levels with global score. 
+
+
+```{r error_score_matrix, fig.height=6, fig.width=10, dev='png', out.width="80%"}
+
+
+df_agg_corsi_all_unscaled %>%
+  dplyr::select(Accuracy, order_errors, block_errors, other_errors) %>%
+  na.omit() %>%
+  cor() %>%
+  corrplot(
+         method = "color",
+         type = "upper",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.cex = 2.5,
+         tl.srt = 30,
+         number.cex = 2.5,
+         diag = FALSE)
+
+
+```
+
+This is confirmed via the implementation of an additive linear regression model in which each type of error shows an statistically significant association with Accuracy even after controlling for the effect of the other type of error.
+
+```{r error_score_regression, dev='png'}
+
+
+summary_lm_table("Accuracy",
+                  c("Accuracy ~ order_errors + block_errors + other_errors"),
+                 df_agg_corsi_all_unscaled %>% 
+                   mutate(across(where(is.numeric), scale))) %>% 
+  mutate(across(where(is.numeric), ~round(.x, digits = 4))) %>% 
+  apa("")
+
+```
+
+## 4.4. Cluster analysis
+
+In the previous analyses we replicated the findings that working memory might mediate the association between SES and academic performance. In adittion, we tested the possible incidence of the different task parameters and error types in the global score. 
+
+In the following, subjects will be clusterized according to their SES and academic performance scores. After that, the resulting subgroups will be compared in relation to their scores in different task parameters and error types.
+
+### 4.4.1. Cluster implementation and description
+
+Given the non-parametric nature of the score variables, we implemented an ensemble clustering algorithm based in the Partitions-around-medioids (PAM) method. Clusterization was repeated 100 times with a random 80% of the sample using manhattan and euclidean distances. The, using a consensus function, participants were assiged to three distict groups. A *k* = 3 was selected in order to obtain information about the three types of errors analized previously.
+
+```{r cluster_implementation, dev='png'}
+
+set.seed(123)
+# 
+df_corsi_cluster = df_agg_corsi_all_unscaled
+
+Ensemble_model = diceR::dice(df_agg_corsi_all %>% 
+                               dplyr::select(PJENES, math_WM),
+                nk = 3, 
+                reps = 100, # 100 repetitions for each algorithm
+                p.item = 0.8, # % of subsamples in each repetition
+                algorithms = c(
+                  "pam"#,
+                 # "pam"
+                 ), # 3 clustering algorithms
+                cons.funs = "LCE", # consensus function
+                distance = c("euclidean",
+                             "manhattan"
+                             ),
+                seed.data= 999 # set random seed                ,
+                # seed = 999  # Force sequential processing
+                
+  )
+
+
+
+df_corsi_cluster$clusters = paste("Cluster",Ensemble_model$clusters)
+# 
+df_corsi_cluster= df_corsi_cluster %>%
+  mutate(clusters = fct_reorder(clusters, PJENES)) %>% 
+ mutate(clusters = fct_relabel(clusters, ~ paste0("Cluster ", seq_along(.x))))
+  
+# datos.reducidos$clusters = paste("Cluster",Ensemble_model$clusters)
+
+
+
+table(df_corsi_cluster$clusters) %>% 
+  as.data.frame() %>% 
+  rename(Clusters = "Var1") %>% 
+  flextable()
+
+
+df_corsi_cluster %>% 
+  group_by(clusters) %>% 
+  summarise()
+
+
+```
+
+### 4.4.2. Cluster description 
+
+After inspecting descriptive and comparison analyses with the SES and math score variables, the three clusters may be described as follows:
+
+*Cluster 1* contains the children with Lower SES and Math score values in average
+*Cluster 2* contains the children with Intermediate SES and Math score values in average
+*Cluster 3* contains the children with Higher SES and Math score values in average
+
+
+```{r cluster_description, dev='png', out.width="80%"}
+
+features <- c("PJENES", 
+              "math_WM")
+
+
+# Transform to long format
+
+datos.long.z = df_corsi_cluster %>%
+  dplyr::select(clusters, all_of(features) ) %>% 
+  pivot_longer(!clusters,names_to = "Feature")
+
+
+
+
+# Mean and SE values
+
+datos.summarised.z = datos.long.z %>%
+  group_by(Feature, clusters) %>% 
+  summarise(Mean = mean(value, na.rm = T),
+            # SD = sd(value),
+            SE = sqrt(sum((value-mean(value, na.rm = T))^2/(length(value)-1)))/sqrt(length(value))) %>% 
+  ungroup()
+
+# Inferential analysis
+
+datos.kruskal.z = datos.long.z %>%
+  group_by(Feature) %>% 
+  nest() %>% 
+  mutate(modelos = map(data ,~kruskal.test(value ~ clusters, data = .)),
+         summary = map(modelos, broom::tidy),) %>% 
+  unnest(summary) %>% 
+  mutate(Significance = case_when(
+    p.value < .001 ~ "***",
+    p.value >= .001 & p.value < .01  ~ "**",
+    p.value >= .01 & p.value < .05 ~ "*",
+    p.value >= .05 ~ ""
+  )) %>% 
+  dplyr::select(-data,-modelos, -parameter, -method) 
+
+
+
+# Formatted table
+  
+
+# Tidyverse pipeline
+(Table1 <- datos.summarised.z %>%
+  left_join(datos.kruskal.z, by = c("Feature")) %>% 
+  # arrange(factor(Feature, levels = feature_order)) %>% 
+  # mutate(Task = gsub("_.*", "", Feature)) %>%  # Extract task name
+  dplyr::select(-"Significance") %>%
+  # dplyr::select(everything()) %>%
+  rename(Statistic = "statistic") %>% 
+  mutate(across(where(is.numeric), ~ifelse(duplicated(.x), NA, .x))) %>% 
+
+  mutate(Feature =str_remove(Feature, "^[A-Z]+_")) %>%
+  mutate(clusters = case_when(
+    clusters == "Cluster 1" ~ "Cluster 1 = Lower SES and Math score",
+    clusters == "Cluster 2" ~ "Cluster 2 = Intermediate SES and Math score",
+    clusters == "Cluster 3" ~ "Cluster 3 = Higher SES and Math score",
+  )) %>% 
+    group_by(Feature) %>% 
+  apa("Kruskal-Wallis comparisons") 
+    
+)
+
+
+
+```
+
+
+
+
+
+```{r cluster_plot_0, dev='png', out.width="80%"}
+
+
+(SES_math_clusters_plot <- df_corsi_cluster %>% 
+        mutate(clusters = case_when(
+    clusters == "Cluster 1" ~ "Cluster 1 = Lower SES and Math score",
+    clusters == "Cluster 2" ~ "Cluster 2 = Intermediate SES and Math score",
+    clusters == "Cluster 3" ~ "Cluster 3 = Higher SES and Math score",
+  )) %>% 
+  ggplot(aes(x = PJENES, y = math_WM, color = factor(clusters), group = factor(clusters),))+
+  geom_point(size = 3) +
+        # scale_color_discrete(direction = -1) +
+   escala_clusters+
+
+      # coord_flip()+
+      theme_minimal() +
+      labs(color = "Clusters")+
+      ylab("Math score") + 
+      xlab("SES") + 
+        theme(
+          # legend.position = "bottom",
+          legend.position = "none",
+          legend.direction = "vertical",
+          axis.text = element_text(size = 10),
+          axis.title.y = element_text(margin = margin(r = 10)),
+          
+          axis.title.x = element_text(margin = margin(t = 10)),
+          plot.title = element_text(size = 10)
+        )
+)
+
+
+
+saveRDS(SES_math_clusters_plot, file = "Figuras/SES_math_clusters_plot.Rds")
+
+# p_SES <- df_corsi_cluster %>% 
+#   
+#   ggplot(aes(x = clusters, y = PJENES, fill = clusters))+
+#   geom_boxplot() + 
+#   theme_minimal()
+# 
+# p_mate <- df_corsi_cluster %>% 
+#   
+#   ggplot(aes(x = clusters, y = math_WM, fill = clusters))+
+#   geom_boxplot()+
+#   theme_minimal()
+# 
+# (p_SES | p_mate)+ plot_layout(guides = 'collect')
+
+
+```
+
+### 4.4.3. Cluster results' association with CORSI's task parameter and error scores
+
+The three distinct SES and math performance clusters were generated, showing differences in maximum level, performance in short and long trials, and the incidence of retrieval order errors (H > 7.484; p <.02).
+
+```{r cluster_kruskal, dev='png', out.width="80%"}
+
+features <- c("max_level", 
+              "Score_Short", "Score_Mid", "Score_Long",
+              "order_errors", "block_errors", "other_errors")
+
+
+# Transform to long format
+
+datos.long.z = df_corsi_cluster %>%
+  dplyr::select(clusters, all_of(features) ) %>% 
+  pivot_longer(!clusters,names_to = "Feature")
+
+
+
+
+# Mean and SE values
+
+datos.summarised.z = datos.long.z %>%
+  group_by(Feature, clusters) %>% 
+  summarise(Mean = mean(value, na.rm = T),
+            # SD = sd(value),
+            SE = sqrt(sum((value-mean(value, na.rm = T))^2/(length(value)-1)))/sqrt(length(value))) %>% 
+  ungroup()
+
+# Inferential analysis
+
+datos.kruskal.z = datos.long.z %>%
+  group_by(Feature) %>% 
+  nest() %>% 
+  mutate(modelos = map(data ,~kruskal.test(value ~ clusters, data = .)),
+         summary = map(modelos, broom::tidy),) %>% 
+  unnest(summary) %>% 
+  mutate(Significance = case_when(
+    p.value < .001 ~ "***",
+    p.value >= .001 & p.value < .01  ~ "**",
+    p.value >= .01 & p.value < .05 ~ "*",
+    p.value >= .05 ~ ""
+  )) %>% 
+  dplyr::select(-data,-modelos, -parameter, -method) 
+
+
+
+# Plot data
+
+datos.plot = datos.summarised.z %>% 
+  left_join(datos.kruskal.z, by = c("Feature")) 
+
+# Formatted table
+  
+
+# Tidyverse pipeline
+(Table1 <- datos.summarised.z %>%
+  left_join(datos.kruskal.z, by = c("Feature")) %>% 
+  # arrange(factor(Feature, levels = feature_order)) %>% 
+  # mutate(Task = gsub("_.*", "", Feature)) %>%  # Extract task name
+  dplyr::select(-"Significance") %>%
+  # dplyr::select(everything()) %>%
+  rename(Statistic = "statistic") %>% 
+  mutate(across(where(is.numeric), ~ifelse(duplicated(.x), NA, .x))) %>% 
+
+  mutate(Feature =str_remove(Feature, "^[A-Z]+_")) %>%
+    group_by(Feature) %>% 
+  apa("Kruskal-Wallis comparisons") 
+    
+)
+
+
+
+```
+
+# 7. Cluster analysis {.fragile}
+## 7.2. Cluster comparisons
+
+```{r cluster_wilcox, dev='png', out.width="80%"}
+
+
+
+  
+datos.long.z %>%
+  group_by(Feature) %>%
+  nest() %>%
+  mutate(
+    modelos = map(data, ~ pairwise.wilcox.test(.x$value, .x$clusters, p.adjust.method = "holm", paired = F)),
+    summary = map(modelos, broom::tidy),
+    pairw_table = map(
+      summary, ~ .x %>%
+        mutate(contrasts = paste(group2, "vs.", group1)) %>%
+        dplyr::select(contrasts, p.value) %>%
+        pivot_wider(names_from = contrasts, values_from = p.value)
+      )
+    ) %>%
+  dplyr::select(Feature, pairw_table) %>%
+
+  unnest(pairw_table) %>% 
+  ungroup() %>% 
+  # apa("")
+  custom_flextable("Pairwise comparisons for clustering result") %>% 
+  bold(j = 2,~ `Cluster 1 vs. Cluster 2` < .05) %>%
+  bold(j = 3,~ `Cluster 1 vs. Cluster 3` < .05)%>%
+  bold(j = 4,~ `Cluster 2 vs. Cluster 3` < .05) %>% 
+  mk_par(j = 2,i = ~`Cluster 1 vs. Cluster 2` < .001, value = as_paragraph("<.001")) %>%
+  mk_par(j = 3,i = ~`Cluster 1 vs. Cluster 3` < .001, value = as_paragraph("<.001")) %>%
+  mk_par(j = 4,i = ~`Cluster 2 vs. Cluster 3` < .001, value = as_paragraph("<.001")) %>%
+  merge_v(j = 1:2) %>%
+  valign(valign = "top")
+
+
+
+
+```
+
+```{r cluster_plot_1, dev='png', out.width="80%"}
+
+
+plot.caracteristicas = function(df){
+  
+  pd <- position_dodge(width = 0.6)
+  
+  df %>% 
+      mutate(clusters = case_when(
+    clusters == "Cluster 1" ~ "Cluster 1 = Lower SES and Math score",
+    clusters == "Cluster 2" ~ "Cluster 2 = Intermediate SES and Math score",
+    clusters == "Cluster 3" ~ "Cluster 3 = Higher SES and Math score",
+  )) %>% 
+    ggplot(aes(x = Feature, 
+               y = Mean, 
+               color = factor(clusters),
+               group = factor(clusters),
+               label = Significance))+
+      geom_errorbar(aes(ymin = Mean - SE,
+                        ymax = Mean + SE), linewidth = 1, color = "black",
+                    alpha = 0.8, position = pd, width = 0.2)+
+        geom_point(size = 4, position = pd) +
+        # scale_color_discrete(direction = -1) +
+escala_clusters+
+      # coord_flip()+
+      theme_minimal() +
+      labs(color = "Clusters")+
+      ylab("Proportion") + 
+        theme(
+          legend.position = "bottom",
+          legend.direction = "vertical",
+          axis.title.x = element_blank(),
+          axis.text = element_text(size = 10),
+          axis.title.y = element_text(margin = margin(r = 10)),
+          plot.title = element_text(size = 10)
+        )
+}
+
+brackets <- function(plot, xmin, xmax, ymax, altura_tip, significancia){
+  
+  plot +
+    # línea horizontal del bracket
+  annotate("segment", x = xmin, xend = xmax, y = ymax, yend = ymax, color = "black") +
+  # tip izquierdo
+  annotate("segment", x = xmin, xend = xmin, y = ymax-altura_tip, yend = ymax, color = "black") +
+  # tip derecho
+  annotate("segment", x = xmax, xend = xmax, y = ymax-altura_tip, yend = ymax, color = "black")+
+  annotate("text", x = ((xmax - xmin)/2) + xmin +0.01, y = ymax+.02, label = significancia, size = 5)
+}
+
+
+features <- c("Score_Short", "Score_Mid", "Score_Long")
+
+path_cluster_plot <- datos.plot %>% 
+  filter(Feature %in% features) %>% 
+  mutate(Feature = case_when(
+    Feature == "Score_Short" ~ "Short path",
+    Feature == "Score_Mid"   ~ "Intermediate path",
+    Feature == "Score_Long"  ~ "Long path"
+  )) %>% 
+  mutate(Feature = factor(Feature, 
+                          levels = c("Short path", "Intermediate path", "Long path"))) %>% 
+  plot.caracteristicas() %>% 
+  brackets(xmin = 0.8,
+           xmax = 1,
+           ymax = 0.80,
+           altura_tip = 0.02,
+           significancia = "*") %>% 
+    brackets(xmin = 0.8,
+           xmax = 1.2,
+           ymax = 0.85,
+           altura_tip = 0.02,
+           significancia = "**")%>% 
+    brackets(xmin = 2.8,
+           xmax = 3.2,
+           ymax = 0.80,
+           altura_tip = 0.02,
+           significancia = "*")+
+  
+  labs(title = "Path lengths") 
+
+# path_cluster_plot
+
+
+saveRDS(path_cluster_plot, file = "Figuras/path_cluster_plot.rds")
+
+features <- c("order_errors", "block_errors", "other_errors")
+
+errors_cluster_plot <- datos.plot %>%
+  filter(Feature %in% features) %>%
+  plot.caracteristicas()%>% 
+  brackets(xmin = 1.8,
+           xmax = 2.2,
+           ymax = 0.35,
+           altura_tip = 0.02,
+           significancia = "**") + 
+  labs(title = "Error types")
+
+
+saveRDS(errors_cluster_plot, file = "Figuras/errors_cluster_plot.rds")
+
+```
+
+```{r fig.width= 10}
+
+
+((SES_math_clusters_plot + theme(legend.position = "none")) /
+   (path_cluster_plot + theme(legend.position = "none"))/
+   (errors_cluster_plot+ theme(legend.position = "none"))/
+   leyenda)+ 
+  plot_layout(heights = c(3, 3, 3, 1.5))
+
+  plot_layout(guides = 'collect') &
+  theme(legend.position = 'bottom', legend.text = element_text(size =10))
+# Leyenda desde uno de los plots
+leyenda <- ggpubr::get_legend(
+  path_cluster_plot + theme(legend.position = "bottom", legend.direction = "vertical")
+) %>% wrap_elements()
+
+saveRDS(leyenda, file = "Figuras/legend.rds")
+
+# Patchwork
+(SES_math_clusters_plot / path_cluster_plot / errors_cluster_plot / leyenda) + 
+  plot_layout(heights = c(3, 3, 3, 1.5))
+
+```
+
+
+
+
+
+<!-- ```{r} -->
+
+<!-- ## Errors -->
+
+<!-- features <- c("order_errors", "block_errors", "other_errors") -->
+
+<!-- datos.long = df_corsi_cluster %>% -->
+<!--   dplyr::select(clusters, all_of(features)) %>%  -->
+<!--   pivot_longer(!clusters,names_to = "Feature") -->
+
+
+<!-- error_comp_plot <- datos.long %>%  -->
+<!--   ggplot(aes(x = Feature, y = value, fill = clusters))+ -->
+<!--   geom_boxplot() -->
+
+
+<!-- # Path lengths -->
+
+<!-- features <- c("Score_Short", "Score_Mid", "Score_Long") -->
+
+<!-- datos.long = df_corsi_cluster %>% -->
+<!--   dplyr::select(clusters, all_of(features)) %>%  -->
+<!--   pivot_longer(!clusters,names_to = "Feature") -->
+
+<!-- path_long_comp_plot <- datos.long %>%  -->
+<!--   ggplot(aes(x = Feature, y = value, fill = clusters))+ -->
+<!--   geom_boxplot() -->
+
+<!-- (error_comp_plot / error_comp_plot)+ plot_layout(guides = 'collect') -->
+
+<!-- ``` -->
+
+# 5. Conclusions
+
+Specific response patterns were related to children's SES and math performance, which may reflect distinct developmental pathways. Results may contribute to designing more inclusive interventions and policies that offer different activities for children with specific processing needs.
+
+PRIMARILY THE CLUSTER 1 GROUP MIGHT BE CANDIDATE FORWORKING MEMORY INTERVENTION FOCUSED ON THOSE KINDS OF TRIAL PARAMETERS AND ERRORS.
