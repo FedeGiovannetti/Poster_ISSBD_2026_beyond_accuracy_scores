@@ -91,6 +91,8 @@ Model_A <- summary_lm_table("Accuracy",
                  df_agg_corsi_all,
                  diagnostic_plots = F) 
 
+saveRDS(Model_A, "models/model_A.Rds")
+
 Model_A%>% 
   apa("Regression model for Age and SES as predictors of total score") 
 
@@ -99,6 +101,8 @@ Model_B <- summary_lm_table("Math",
                   c("math_WM ~ EDAD +Accuracy"),
                  df_agg_corsi_all,
                  diagnostic_plots = F) 
+
+saveRDS(Model_B, "models/model_A.Rds")
 
 Model_B %>% 
   apa("Regression model for total working memory score as a predictor of math score") 
@@ -644,12 +648,13 @@ datos.kruskal.z = datos.long.z %>%
     clusters == "Cluster 3" ~ "Cluster 3 = Higher SES and Math score",
   )) %>% 
   ggplot(aes(x = PJENES, y = math_WM, color = factor(clusters), group = factor(clusters),))+
-  geom_point(size = 3) +
+  geom_point(size = 5) +
         # scale_color_discrete(direction = -1) +
    escala_clusters+
 
       # coord_flip()+
       theme_minimal() +
+   ggtitle("Clustered association between SES and math score")+
       labs(color = "Clusters")+
       ylab("Math score") + 
       xlab("SES") + 
@@ -661,7 +666,7 @@ datos.kruskal.z = datos.long.z %>%
           axis.title.y = element_text(margin = margin(r = 10)),
           
           axis.title.x = element_text(margin = margin(t = 10)),
-          plot.title = element_text(size = 10)
+          plot.title = element_text(size = 20, face = "bold")
         )
 )
 
@@ -823,7 +828,7 @@ plot.caracteristicas = function(df){
       geom_errorbar(aes(ymin = Mean - SE,
                         ymax = Mean + SE), linewidth = 1, color = "black",
                     alpha = 0.8, position = pd, width = 0.2)+
-        geom_point(size = 4, position = pd) +
+        geom_point(size = 6, position = pd) +
         # scale_color_discrete(direction = -1) +
 escala_clusters+
       # coord_flip()+
@@ -835,9 +840,11 @@ escala_clusters+
           legend.direction = "vertical",
           axis.title.x = element_blank(),
           axis.text = element_text(size = 10),
+          
+          axis.text.x = element_text(size = 15),
           axis.title.y = element_text(margin = margin(r = 10)),
-          plot.title = element_text(size = 10)
-        )
+          plot.title = element_text(size = 20, face = "bold"))
+        
 }
 
 brackets <- function(plot, xmin, xmax, ymax, altura_tip, significancia){
@@ -892,6 +899,11 @@ features <- c("order_errors", "block_errors", "other_errors")
 
 errors_cluster_plot <- datos.plot %>%
   filter(Feature %in% features) %>%
+    mutate(Feature = case_when(
+    Feature == "order_errors" ~ "Order errors",
+    Feature == "block_errors"   ~ "Block errors",
+    Feature == "other_errors"  ~ "Other errors"
+  )) %>% 
   plot.caracteristicas()%>% 
   brackets(xmin = 1.8,
            xmax = 2.2,
@@ -918,7 +930,9 @@ saveRDS(errors_cluster_plot, file = "Figuras/errors_cluster_plot.rds")
   theme(legend.position = 'bottom', legend.text = element_text(size =10))
 # Leyenda desde uno de los plots
 leyenda <- ggpubr::get_legend(
-  path_cluster_plot + theme(legend.position = "bottom", legend.direction = "vertical")
+  path_cluster_plot + theme(legend.position = "bottom", legend.direction = "vertical",
+          legend.text = element_text(size = 15),
+          legend.title = element_text(size = 15, face = "bold"))
 ) %>% wrap_elements()
 
 saveRDS(leyenda, file = "Figuras/legend.rds")
