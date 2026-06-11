@@ -36,7 +36,6 @@ escala_clusters <- scale_color_hue(
   name      = "Clusters",
   direction = -1
 )
-x
 ```
 
 
@@ -888,7 +887,8 @@ path_cluster_plot <- datos.plot %>%
            altura_tip = 0.02,
            significancia = "*")+
   
-  labs(title = "Path lengths") 
+  labs(title = "Path lengths") +
+  ylab("Proportion correct")
 
 # path_cluster_plot
 
@@ -910,7 +910,8 @@ errors_cluster_plot <- datos.plot %>%
            ymax = 0.35,
            altura_tip = 0.02,
            significancia = "**") + 
-  labs(title = "Error types")
+  labs(title = "Error types")+
+  ylab("Proportion errors")
 
 
 saveRDS(errors_cluster_plot, file = "Figuras/errors_cluster_plot.rds")
@@ -944,40 +945,6 @@ saveRDS(leyenda, file = "Figuras/legend.rds")
 ```
 
 
-
-
-
-<!-- ```{r} -->
-
-<!-- ## Errors -->
-
-<!-- features <- c("order_errors", "block_errors", "other_errors") -->
-
-<!-- datos.long = df_corsi_cluster %>% -->
-<!--   dplyr::select(clusters, all_of(features)) %>%  -->
-<!--   pivot_longer(!clusters,names_to = "Feature") -->
-
-
-<!-- error_comp_plot <- datos.long %>%  -->
-<!--   ggplot(aes(x = Feature, y = value, fill = clusters))+ -->
-<!--   geom_boxplot() -->
-
-
-<!-- # Path lengths -->
-
-<!-- features <- c("Score_Short", "Score_Mid", "Score_Long") -->
-
-<!-- datos.long = df_corsi_cluster %>% -->
-<!--   dplyr::select(clusters, all_of(features)) %>%  -->
-<!--   pivot_longer(!clusters,names_to = "Feature") -->
-
-<!-- path_long_comp_plot <- datos.long %>%  -->
-<!--   ggplot(aes(x = Feature, y = value, fill = clusters))+ -->
-<!--   geom_boxplot() -->
-
-<!-- (error_comp_plot / error_comp_plot)+ plot_layout(guides = 'collect') -->
-
-<!-- ``` -->
 
 # 5. Conclusions
 

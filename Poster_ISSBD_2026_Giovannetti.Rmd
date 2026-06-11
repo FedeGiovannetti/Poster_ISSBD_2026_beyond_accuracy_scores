@@ -22,13 +22,13 @@ affiliation:
 # main_findings:
 #   - "**<span style='font-size: 180px;'>Beyond accuracy scores:</span>** <br> <span style='font-size: 120px;'>Distinct working memory profiles across socioeconomic and math performance levels</span>"
 main_findings:
-  - "<div style='text-align: center; width: 120%;'>**<span style='font-weight: 800; font-size: 160px;'>Beyond accuracy scores:</span>** <br> <span style='font-weight: 300; font-size: 100px;'>Distinct working memory profiles across socioeconomic and math performance levels</span></div>"
+  - "<div style='text-align: center; width: 120%;'>**<span style='font-weight: 800; font-size: 160px;'>Beyond accuracy scores:</span>** <br> **<span style='font-weight: 300; font-size: 100px;'>Distinct working memory profiles across socioeconomic and math performance levels</span>**</div>"
 main_fontfamily: 'Montserrat'
 # main_width: 0.5
 main_textsize: "120px"
-logoleft_name: "img/Logos_UNA_CEMIC.png"
+logoleft_name: "img/Logos_UNA_CEMIC_ISSBD.png"
   
-logoright_name: "img/QR_Poster_AACC_2025.png"
+logoright_name: "img/QR_Poster_ISSBD_2026.png"
 output:
   posterdown::posterdown_betterport:
     self_contained: true
@@ -51,10 +51,10 @@ body_textsize: "40px"
 author_textsize: "60px"
 authorextra_textsize: "50px"
 affiliation_textsize: "40px"
-reference_textsize: "25px"
+reference_textsize: "18px"
 accent_colour: '#00000090'
 main_textcol: "#FFFFFF"
-# column_numbers: 2   
+nocite: '@*'
 ---
 
 
@@ -63,28 +63,42 @@ main_textcol: "#FFFFFF"
 .poster_body, #content {
     padding-left: 40cm !important; /* Adjust this to widen the left margin */
     padding-right: 2cm !important; /* Optional: adds breathing room on the right */
+    
 }
+
+#refs > * {
+  margin-bottom: 5px !important;
+}
+
+
 
 #main-img-left {
   position: absolute;
-  top: 50%;
-  left: 23%;
-  transform: translate(-50%, -50%);
-  width: 40%;   /* ajustá el tamaño del logo */
+  top: 1cm;      /* Distancia exacta desde arriba */
+  left: 3cm;     /* Distancia exacta desde la izquierda */
+  width: 60cm;   /* AJUSTA ESTE NÚMERO para agrandar (ej. 30cm, 40cm) */
+  height: auto;  /* Mantiene la proporción perfecta sin deformar */
   object-fit: contain;
-  overflow: hidden;   /* que no se salga */
-  max-height: 50%;   /* asegurás que no “empuje” */
+  z-index: 100;  /* Asegura que el logo flote por encima de todo */
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  filter: none !important;
 }
 
 #main-img-right {
   position: absolute;
   right: 3%;
-  top: 20%;
-  width: 220px;
-  height: 220px;
+  top: 15%;
+  width: 300px;
+  height: 300px;
   object-fit: contain;
   overflow: hidden;   /* que no se salga */
   max-height: 90%;   /* asegurás que no “empuje” */
+    background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  filter: none !important;
 }
 
 .author_extra {
@@ -123,24 +137,15 @@ options(knitr.table.format = "html")
 ## Código QR
 # 
 # qr_code("https://github.com/FedeGiovannetti/Poster_ISSBD_2026_beyond_accuracy_scores", ecl = "H") %>%
-#   generate_svg("QR_Poster_ISSBD_2026.svg", foreground = "white", background = "transparent")
+#   generate_svg("img/QR_Poster_ISSBD_2026.svg", foreground = "white", background = "transparent")
 # 
-# rsvg_png("QR_Poster_ISSBD_2026.svg", "QR_Poster_ISSBD_2026.png", width = 1000, height = 1000)
+# #
+# rsvg_png("img/QR_Poster_ISSBD_2026.svg", "img/QR_Poster_ISSBD_2026.png", width = 1000, height = 1000)
 
 ```
 
-<span style="display: block; margin-top: -5px;">
-
-### 1. Background
-
-<div style="margin-left: 10px; margin-right: -40px;">
-<span style="font-size:35px; font-weight:normal;">
-Evidence links socioeconomic status (SES) to cognitive development and academic performance (Noble & Giebler, 2020). Working memory (WM) is proposed as a mediator (Waters et al., 2020). Research often relies on global performance, which may limit the capture of cognitive diversity in developmental pathways. Exploring specific task parameters and error types could reveal distinct subgroups for targeted interventions.
-</span>
-</div>
-
-```{r, include=FALSE}
-knitr::write_bib(c('posterdown', 'rmarkdown','pagedown','dplyr','ggplot2','base','diceR'), 'packages.bib')
+```{r bibliography, include=FALSE, eval=FALSE}
+knitr::write_bib(c('posterdown', 'rmarkdown','dplyr','ggplot2','base','diceR'), 'packages.bib')
 
 cat(
 "
@@ -155,14 +160,65 @@ cat(
 file = "packages.bib",
 append = TRUE
 )
+
+cat(
+"
+  @article{WATERS2025106335,
+    title = {Socioeconomic status and academic achievement: Developmental pathways through parenting and children’s executive functions},
+    journal = {Journal of Experimental Child Psychology},
+    volume = {260},
+    pages = {106335},
+    year = {2025},
+    issn = {0022-0965},
+    doi = {https://doi.org/10.1016/j.jecp.2025.106335},
+    url = {https://www.sciencedirect.com/science/article/pii/S0022096525001419},
+    author = {Nicholas E. Waters and Sammy F. Ahmed and Pamela E. Davis-Kean},
+    keywords = {Socioeconomic status, Parenting, Executive functions, Academic achievement, Achievement gap, Parent education, Working memory}
+}",
+file = "packages.bib",
+append = TRUE
+)
+
+cat(
+"
+  @article{NOBLE202023,
+    title = {The neuroscience of socioeconomic inequality},
+    journal = {Current Opinion in Behavioral Sciences},
+    volume = {36},
+    pages = {23-28},
+    year = {2020},
+    note = {Sensitive and critical periods},
+    issn = {2352-1546},
+    doi = {https://doi.org/10.1016/j.cobeha.2020.05.007},
+    url = {https://www.sciencedirect.com/science/article/pii/S2352154620300802},
+    author = {Kimberly G Noble and Melissa A Giebler}
+  }
+}",
+file = "packages.bib",
+append = TRUE
+)
+
 ```
+
+
+
+<span style="display: block; margin-top: -5px;">
+
+### 1. Background
+
+<div style="margin-left: 40px; margin-right: -40px;">
+<span style="font-size:35px; font-weight:normal;">
+Evidence links socioeconomic status (SES) to cognitive development and academic performance (Noble & Giebler, 2020). Working memory (WM) is proposed as a mediator (Waters et al., 2020). Research often relies on global performance, which may limit the capture of cognitive diversity in developmental pathways. Exploring specific task parameters and error types could reveal distinct subgroups for targeted interventions.
+</span>
+</div>
+
 
 ### 2. Purpose
 
-<div style="margin-left: 10px; margin-right: -40px;">
+<div style="margin-left: 40px; margin-right: -40px;">
 <span style="font-size:35px; font-weight:normal;">
 
-To implement an unsupervised clustering analysis to examine associations between SES and academic performance. Children with distinct profiles will exhibit differing WM response patterns.
+To implement unsupervised clustering analisys to examine associations between SES and academic performance, and to characterize WM response patterns across children with distinct profiles.
 
 </span>
 
@@ -170,7 +226,7 @@ To implement an unsupervised clustering analysis to examine associations between
 
 ### 3. Methods
 
-<div style="margin-left: 10px; margin-right: -40px;">
+<div style="margin-left: 40px; margin-right: -40px;">
 
 <span style="font-size:35px; font-weight:normal;">
 Fifty-one 5-year-olds completed a Corsi task and the Woodcock-Muñoz math subscale; caregivers provided SES information. Associations were examined via multiple regression and bootstrapped mediation analyses. Children were clustered (PAM), and response patterns were compared between groups using Kruskal-Wallis and corrected post-hoc tests. Analyses were conducted in R (2025).
@@ -188,7 +244,7 @@ Model_B <- readRDS("models/model_B.Rds")
 ```
 
 
-<div style="margin-left: 10px; margin-right: -40px;">
+<div style="margin-left: 40px; margin-right: -40px;">
 
 <span style="font-size:35px; font-weight:normal;">
 
@@ -206,9 +262,9 @@ The different parameters of the task showed distinct associations with the globa
 
 A *k* = 3 was selected and the clustering algorithm was implemented using only SES and math score as features, resulting in the following clusters:
 
-- <span style="color:#619CFF; font-weight:bold;">Clúster 1</span> contains the children with Lower SES and Math score values in average <br>
-- <span style="color:#00BA38; font-weight:bold;">Clúster 2</span> contains the children with Intermediate SES and Math score values in average <br>
-- <span style="color:#F8766D; font-weight:bold;">Clúster 3</span>  contains the children with Higher SES and Math score values in average <br>
+- <span style="color:#619CFF; font-weight:bold;">Cluster 1</span> contains the children with Lower SES and Math score values in average <br>
+- <span style="color:#00BA38; font-weight:bold;">Cluster 2</span> contains the children with Intermediate SES and Math score values in average <br>
+- <span style="color:#F8766D; font-weight:bold;">Cluster 3</span>  contains the children with Higher SES and Math score values in average <br>
 
 These groups showed statistically significant differences in maximum level, performance in short and long trials, and the incidence of order errors (H > 7.484; p <.02).
 
@@ -220,22 +276,27 @@ These groups showed statistically significant differences in maximum level, perf
 
 ### 5. Conclusions
 
-<div style="margin-left: 10px; margin-right: -40px;">
+<div style="margin-left: 40px; margin-right: -40px;">
 <span style="font-size:35px; font-weight:normal;">
 
-Specific response patterns were related to children's SES and math performance, which may reflect distinct developmental pathways. Results may contribute to designing more inclusive interventions and policies that offer different activities for children with specific processing needs.
+**Specific response patterns were related to children's SES and math performance, which may reflect distinct developmental pathways. Results may contribute to the design of more inclusive interventions and policies that offer different activities for children with specific processing needs.**
 
 </span>
 
 </div>
 
-### 6. References
-<span style="display: block; margin-top: -3px;">
+#### 6. References
+<span style="display: block; margin-top: -15px;">
 
+<div style="margin-left: 35px; margin-right: -40px; font-size: 5px;">
 ::: {#refs}
 :::
 
-<figure style="width:200%; margin: 0 auto; text-align:center;"> 
+</div>
+
+<div style="height:100px;"></div>
+ 
+<figure style="width:190%; margin: 0 auto; transform: translateX(140px); text-align:center;">
 <!-- <figure style="width:200%; margin: 0 auto; padding-top: 60px; text-align:center;">  -->
   <img src="img/foto_campo.jpg" alt="Figura_1" style="width:100%;">
   <figcaption style="margin-top: 15px;">
@@ -285,7 +346,8 @@ ggsave("Figuras/Figura_path.png", figura_2, width = 12, height = 4, units = "in"
 
 ```
 
- <figure style="width:200%; margin:-10 auto; text-align:center;">
+<div style="height:100px;"></div>   
+<figure style="width:200%; margin: 0 auto; transform: translateX(100px); text-align:center;">
    <img src="Figuras/Figura_path.png" alt="Figura_2" style="width:100%;">
   <figcaption>
   <span style="font-weight:bold;">Figure 2.</span>
@@ -334,7 +396,8 @@ ggsave("Figuras/Figura_errores.png", figura_2, width = 12, height = 4, units = "
 
 ```
 
- <figure style="width:200%; margin:-10 auto; text-align:center;">
+<div style="height:100px;"></div>
+<figure style="width:200%; margin: 0 auto; transform: translateX(100px); text-align:center;">
    <img src="Figuras/Figura_errores.png" alt="Figura_2" style="width:100%;">
   <figcaption>
   <span style="font-weight:bold;">Figura 3.</span>
@@ -361,22 +424,11 @@ errors_cluster_plot <- readRDS("Figuras/errors_cluster_plot.Rds") +
 
 legend <- readRDS("Figuras/legend.rds")
 
-# (SES_math_clusters_plot / path_cluster_plot/ errors_cluster_plot/ legend)+ 
-#   plot_layout(heights = c(3, 3, 3, 1.5))
-# 
-#   plot_layout(guides = 'collect') &
-#   theme(legend.position = 'bottom', legend.text = element_text(size =10))
-# # Leyenda desde uno de los plots
-# leyenda <- ggpubr::get_legend(
-#   path_cluster_plot + theme(legend.position = "bottom", legend.direction = "vertical")
-# ) %>% wrap_elements()
 
-# (# Patchwork
-# (
 figure_1 <- (SES_math_clusters_plot / path_cluster_plot / errors_cluster_plot / legend) + 
   plot_layout(heights = c(5, 3, 3, 1.5))&
         theme(
-          axis.title.x = element_blank(),
+          axis.title.x = element_text(size = 15),
           axis.title.y = element_text(margin = margin(r = 10), size = 15),
           plot.title = element_text(size = 20, face = "bold", margin = margin(b = 20)),
           plot.margin = margin(20, 10, 10, 5)
@@ -392,12 +444,12 @@ ggsave("Figuras/Figura_1_poster.png", figure_1, width = 12, height = 10, units =
 ```
 
  <!-- <span style="display: block; margin-top: 50px;"> -->
-
-<figure style="width:200%; margin:0 auto; text-align:center;">
+<div style="height:100px;"></div>
+<figure style="width:200%; margin: 0 auto; transform: translateX(100px); text-align:center;">
   <img src="Figuras/Figura_1_poster.png" alt="Figura_1" style="width:100%;">
-  <figcaption style="margin-top: 15px;">
+  <figcaption style="margin-top: 17px;">
   <span style="font-weight:bold;">Figure 4.</span> 
-  SES, math score, problem parameters and error types across the three distinct clusters. * p<0.05; ** p<0.01; *** p<0.001.
+  SES, math score, problem parameters and error types<br>across the three distinct clusters. * p<0.05; ** p<0.01; *** p<0.001.
   </figcaption>
 </figure>
   
